@@ -21,6 +21,7 @@ package openssl
 #include <openssl/ssl.h>
 #include <openssl/conf.h>
 #include <openssl/err.h>
+#include <openssl/evp.h>
 
 int sk_X509_num_not_a_macro(STACK_OF(X509) *sk) { return sk_X509_num(sk); }
 X509 *sk_X509_value_not_a_macro(STACK_OF(X509)* sk, int i) {
@@ -34,6 +35,12 @@ const char * SSL_get_cipher_name_not_a_macro(const SSL *ssl) {
 }
 static int SSL_session_reused_not_a_macro(SSL *ssl) {
     return SSL_session_reused(ssl);
+}
+
+static EVP_PKEY * my_get_server_tmp_key(SSL *ssl) {
+     EVP_PKEY *key;
+     SSL_ctrl(ssl, SSL_CTRL_GET_SERVER_TMP_KEY,0, &key );
+     return key;
 }
 */
 import "C"
@@ -638,4 +645,23 @@ func (c *Conn) setSession(session []byte) error {
 		return fmt.Errorf("unable to set session: %s", errorFromErrorQueue())
 	}
 	return nil
+}
+
+
+//Added to get server temp key
+func (c *Conn) PrintServerTmpKey() {
+     s := c.SSL.ssl
+     //var key *C.EVP_PKEY
+     var tmpKey pKey
+
+     //version := C.SSLeay_version(0)
+     //goStr := C.GoString(version)
+     //println(goStr)
+
+     //C.SSL_get_server_tmp_key(s, &key)
+     //C.SSL_ctrl(s, C.SSL_CTRL_GET_SERVER_TMP_KEY,0, unsafe.Pointer( tmpKey.evpPKey() ) )
+     tmpKey.key = C.my_get_server_tmp_key(s)
+     defer C.EVP_PKEY_free(tmpKey.key)
+     println(C.EVP_PKEY_id(tmpKey.key))
+     
 }

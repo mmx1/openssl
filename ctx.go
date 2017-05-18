@@ -142,6 +142,10 @@ type Ctx struct {
 	ticket_store    *TicketStore
 }
 
+func  (c Ctx)  Get_ssl_ctx() *C.SSL_CTX {
+      return c.ctx
+}
+
 //export get_ssl_ctx_idx
 func get_ssl_ctx_idx() C.int {
 	return ssl_ctx_idx
