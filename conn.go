@@ -38,7 +38,7 @@ static int SSL_session_reused_not_a_macro(SSL *ssl) {
 }
 
 static EVP_PKEY * my_get_server_tmp_key(SSL *ssl) {
-     EVP_PKEY *key;
+     EVP_PKEY *key = 0;
      SSL_ctrl(ssl, SSL_CTRL_GET_SERVER_TMP_KEY,0, &key );
      return key;
 }
@@ -654,8 +654,11 @@ func (c *Conn) GetServerTmpKey() (int, int, string)  {
      var tmpKey pKey
 
      tmpKey.key = C.my_get_server_tmp_key(s)
+     if tmpKey.key == nil {
+     	return 0,0,""
+     }
 
-     //println(C.EVP_PKEY_id(tmpKey.key))
+     //println(tmpKey.key)
      defer C.EVP_PKEY_free(tmpKey.key)
 
      cipherId := C.EVP_PKEY_id(tmpKey.key)
