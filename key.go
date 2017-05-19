@@ -19,6 +19,7 @@ package openssl
 // #include <openssl/evp.h>
 // #include <openssl/ssl.h>
 // #include <openssl/conf.h>
+// #include <openssl/rsa.h>
 //
 // int EVP_SignInit_not_a_macro(EVP_MD_CTX *ctx, const EVP_MD *type) {
 //     return EVP_SignInit(ctx, type);
@@ -93,6 +94,14 @@ type pKey struct {
 }
 
 func (key *pKey) evpPKey() *C.EVP_PKEY { return key.key }
+
+func PKeySize(key PublicKey) int { 
+	rsa := (*C.RSA)(C.EVP_PKEY_get1_RSA(key.evpPKey()))
+	if rsa == nil {
+		return 0
+	}
+	return int(C.RSA_size(rsa)) 
+}
 
 func (key *pKey) SignPKCS1v15(method Method, data []byte) ([]byte, error) {
 	var ctx C.EVP_MD_CTX
