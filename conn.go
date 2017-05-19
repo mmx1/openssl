@@ -648,20 +648,32 @@ func (c *Conn) setSession(session []byte) error {
 }
 
 
-//Added to get server temp key
-func (c *Conn) PrintServerTmpKey() {
+//Added to get server temp key, returns cipher id, cipher bits, curve name (if applicable)
+func (c *Conn) GetServerTmpKey() (int, int, string)  {
      s := c.SSL.ssl
-     //var key *C.EVP_PKEY
      var tmpKey pKey
 
-     //version := C.SSLeay_version(0)
-     //goStr := C.GoString(version)
-     //println(goStr)
-
-     //C.SSL_get_server_tmp_key(s, &key)
-     //C.SSL_ctrl(s, C.SSL_CTRL_GET_SERVER_TMP_KEY,0, unsafe.Pointer( tmpKey.evpPKey() ) )
      tmpKey.key = C.my_get_server_tmp_key(s)
+
+     //println(C.EVP_PKEY_id(tmpKey.key))
      defer C.EVP_PKEY_free(tmpKey.key)
-     println(C.EVP_PKEY_id(tmpKey.key))
-     
+
+     cipherId := C.EVP_PKEY_id(tmpKey.key)
+     var cipherBits int
+     var curveName string
+
+     if cipherId == C.EVP_PKEY_RSA || cipherId == C.EVP_PKEY_DH || cipherId == C.EVP_PKEY_EC {
+     	cipherBits = int(C.EVP_PKEY_bits(tmpKey.key))
+     }
+     if cipherId  == C.EVP_PKEY_EC {
+     	ec := C.EVP_PKEY_get1_EC_KEY(tmpKey.key)
+	defer C.EC_KEY_free(ec)
+	nid := C.EC_GROUP_get_curve_name(C.EC_KEY_get0_group(ec))
+	cname := C.EC_curve_nid2nist(nid);
+	if cname == nil {
+	   cname = C.OBJ_nid2sn(nid)
+	}
+	curveName = C.GoString(cname)
+     }
+     return int(cipherId), cipherBits,  curveName
 }
