@@ -661,22 +661,5 @@ func (c *Conn) GetServerTmpKey() (int, int, string)  {
      //println(tmpKey.key)
      defer C.EVP_PKEY_free(tmpKey.key)
 
-     cipherId := C.EVP_PKEY_id(tmpKey.key)
-     var cipherBits int
-     var curveName string
-
-     if cipherId == C.EVP_PKEY_RSA || cipherId == C.EVP_PKEY_DH || cipherId == C.EVP_PKEY_EC {
-     	cipherBits = int(C.EVP_PKEY_bits(tmpKey.key))
-     }
-     if cipherId  == C.EVP_PKEY_EC {
-     	ec := C.EVP_PKEY_get1_EC_KEY(tmpKey.key)
-	defer C.EC_KEY_free(ec)
-	nid := C.EC_GROUP_get_curve_name(C.EC_KEY_get0_group(ec))
-	cname := C.EC_curve_nid2nist(nid);
-	if cname == nil {
-	   cname = C.OBJ_nid2sn(nid)
-	}
-	curveName = C.GoString(cname)
-     }
-     return int(cipherId), cipherBits,  curveName
+     return getPKeyParameters(tmpKey.key)
 }

@@ -95,12 +95,26 @@ type pKey struct {
 
 func (key *pKey) evpPKey() *C.EVP_PKEY { return key.key }
 
-func PKeySize(key PublicKey) int { 
-	rsa := (*C.RSA)(C.EVP_PKEY_get1_RSA(key.evpPKey()))
-	if rsa == nil {
-		return 0
+//returns cipher id, cipher bits, curve name (if applicable)
+func getPKeyParameters(key *C.EVP_PKEY) (int, int, string) {
+     cipherId := C.EVP_PKEY_id(key)
+     cipherBits := C.EVP_PKEY_bits(key)
+     var curveName string
+     if cipherId  == C.EVP_PKEY_EC {
+        ec := C.EVP_PKEY_get1_EC_KEY(key)
+	defer C.EC_KEY_free(ec)
+	nid := C.EC_GROUP_get_curve_name(C.EC_KEY_get0_group(ec))
+	cname := C.EC_curve_nid2nist(nid);
+	if cname == nil {
+	   cname = C.OBJ_nid2sn(nid)
 	}
-	return int(C.RSA_size(rsa)) 
+	curveName = C.GoString(cname)
+    }
+    return int(cipherId), int(cipherBits), curveName
+}
+
+func GetPKeyParameters(pk PublicKey) (int, int, string) {
+     return getPKeyParameters(pk.evpPKey())
 }
 
 func (key *pKey) SignPKCS1v15(method Method, data []byte) ([]byte, error) {
