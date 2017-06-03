@@ -17,6 +17,7 @@ package openssl
 import (
 	"errors"
 	"net"
+	"time"
 )
 
 type listener struct {
@@ -77,7 +78,11 @@ const (
 // This library is not nice enough to use the system certificate store by
 // default for you yet.
 func Dial(network, addr string, ctx *Ctx, flags DialFlags) (*Conn, error) {
-	return DialSession(network, addr, ctx, flags, nil)
+	return DialSession(network, addr, ctx, flags, nil, 0)
+}
+
+func DialTimeout(network, addr string, ctx *Ctx, flags DialFlags, timeout time.Duration) (*Conn, error) {
+	return DialSession(network, addr, ctx, flags, nil, timeout)
 }
 
 // DialSession will connect to network/address and then wrap the corresponding
@@ -94,7 +99,7 @@ func Dial(network, addr string, ctx *Ctx, flags DialFlags) (*Conn, error) {
 // If session is not nil it will be used to resume the tls state. The session
 // can be retrieved from the GetSession method on the Conn.
 func DialSession(network, addr string, ctx *Ctx, flags DialFlags,
-	session []byte) (*Conn, error) {
+	session []byte, timeout time.Duration) (*Conn, error) {
 
 	host, _, err := net.SplitHostPort(addr)
 	if err != nil {
@@ -108,7 +113,12 @@ func DialSession(network, addr string, ctx *Ctx, flags DialFlags,
 		}
 		// TODO: use operating system default certificate chain?
 	}
-	c, err := net.Dial(network, addr)
+	var c net.Conn
+	if timeout > 0 {
+		c, err = net.DialTimeout(network, addr, timeout)
+	}else{
+		c, err = net.Dial(network, addr)
+	}
 	if err != nil {
 		return nil, err
 	}
